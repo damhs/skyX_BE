@@ -1,0 +1,17 @@
+POST http://172.10.7.60:3001/api/auth/signIn
+Content-Type: application/json
+
+{
+  "id": "asdf",
+  "nickname": "asdf",
+  "profileURL": "asdf"
+}
+
+###
+
+POST http://172.10.7.60:3001/api/auth/login
+Content-Type: application/json
+
+{
+  "id": "asdf",
+}
