@@ -2,6 +2,12 @@
 const express = require("express");
 const http = require("http");
 const webSocketServer = require("websocket").server;
+const pool = require('./src/mysql.js');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const bodyParser = require('body-parser');
+
+dotenv.config();
 
 const app = express();
 const port = 3001;
