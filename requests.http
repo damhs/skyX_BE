@@ -14,8 +14,8 @@ Content-Type: application/json
 
 ###
 
-GET /ws?user_id=123 HTTP/1.1
-Host: 172.10.7.60:3001
+GET /ws?user_id=asdf HTTP/1.1
+Host: 172.10.7.60:3001/api/auth/signIn
 Upgrade: websocket
 Connection: Upgrade
 Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
