@@ -1,5 +1,6 @@
 const WebSocketServer = require("websocket").server;
 const { validateUser } = require("./Handler/userHandler");
+const { client } = require("./redis.js");
 
 const connections = new Map(); // 연결된 클라이언트 저장
 
@@ -39,7 +40,6 @@ function parseQueryParams(url) {
   return Object.fromEntries(params.entries());
 }
 
-// 예시) wsServer.on("request", ...) 내부에 message 핸들러
 function handleMessage(user_id, message) {
   if (message.type === "utf8") {
     try {
