@@ -14,9 +14,9 @@ Content-Type: application/json
 
 ###
 
-POST http://172.10.7.60:3001/api/auth/login
-Content-Type: application/json
-
-{
-  "id": "asdf",
-}
+GET /ws?user_id=123 HTTP/1.1
+Host: 172.10.7.60:3001
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Sec-WebSocket-Version: 13

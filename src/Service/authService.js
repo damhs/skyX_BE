@@ -11,7 +11,6 @@ const authService = {
     }
   },
 
-  // 회원가입
   signIn: async (id, nickname, profileURL) => {
     try {
       // Check if user already exists

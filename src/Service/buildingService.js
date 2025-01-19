@@ -23,8 +23,8 @@ async function initBuildingObstacles() {
     
     // 3) 건물 리스트(rows)를 가지고 장애물 표시
     //    기준점(lat0, lon0)는 예시로 중앙값 혹은 특정 지역 좌표
-    const lat0 = 37.5665;
-    const lon0 = 126.9780;
+    const lat0 = 36.37317;
+    const lon0 = 127.36062;
 
     // markBuildingsAsObstacles를 통해 gridInfo.grid를 업데이트
     markBuildingsAsObstacles(rows, gridInfo, lat0, lon0);
