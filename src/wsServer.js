@@ -39,16 +39,52 @@ function parseQueryParams(url) {
   return Object.fromEntries(params.entries());
 }
 
+// 예시) wsServer.on("request", ...) 내부에 message 핸들러
 function handleMessage(user_id, message) {
   if (message.type === "utf8") {
     try {
       const data = JSON.parse(message.utf8Data);
-      if (data.type === "chat") {
+
+      // location_update 타입일 경우
+      if (data.type === "location_update") {
+        const { latitude, longitude, altitude, direction, speed } = data.payload;
+        
+        // Redis에 저장
+        saveUserLocationToRedis(user_id, { 
+          latitude, 
+          longitude, 
+          altitude, 
+          direction, 
+          speed 
+        });
+        
+        // 필요하다면 다른 사용자에게 브로드캐스트
+        // broadcastMessage({ type: "location_update", user_id, payload: {...} });
+      }
+      // 채팅 등 다른 타입 처리
+      else if (data.type === "chat") {
         broadcastMessage({ type: "chat", sender: user_id, message: data.payload });
       }
+
     } catch (error) {
       console.error("Invalid message format:", error);
     }
+  }
+}
+
+async function saveUserLocationToRedis(userId, { latitude, longitude, altitude, direction, speed }) {
+  try {
+    // Hash 구조: user:{userId}
+    await client.hSet(`user:${userId}`, {
+      latitude: String(latitude),
+      longitude: String(longitude),
+      altitude: String(altitude),
+      direction: String(direction),
+      speed: String(speed),
+      updatedAt: String(Date.now()) // 갱신 시간(타임스탬프)도 함께 저장
+    });
+  } catch (error) {
+    console.error("Failed to save user location:", error);
   }
 }
 

@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
-const { initRedis } = require("./src/redis");
-const { initHttpServer } = require("./src/httpServer");
-const { initWebSocketServer } = require("./src/wsServer");
+const { initRedis } = require("./src/redis.js");
+const { initHttpServer } = require("./src/httpServer.js");
+const { initWebSocketServer } = require("./src/wsServer.js");
 
 dotenv.config(); // 환경 변수 설정
 
