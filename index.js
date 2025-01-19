@@ -1,46 +1,20 @@
-//index.js
-const express = require("express");
-const http = require("http");
-const webSocketServer = require("websocket").server;
-const pool = require('./src/mysql.js');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const bodyParser = require('body-parser');
+const dotenv = require("dotenv");
+const { initRedis } = require("./src/redis");
+const { initHttpServer } = require("./src/httpServer");
+const { initWebSocketServer } = require("./src/wsServer");
 
-const authRouter = require('./src/Router/authRouter.js');
+dotenv.config(); // 환경 변수 설정
 
-dotenv.config();
+// Redis 초기화
+initRedis().then(() => {
+  console.log("Redis initialized");
 
-const app = express();
-const port = 3001;
+  // HTTP 서버 초기화
+  const server = initHttpServer();
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+  // WebSocket 서버 초기화
+  initWebSocketServer(server);
 
-app.use('/api/auth', authRouter);
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+}).catch((err) => {
+  console.error("Error initializing Redis:", err);
 });
-
-var server = http.createServer(app).listen(port, function () {
-  console.log("Express server listening");
-});
-
-var wsServer = new webSocketServer({
-  httpServer: server,
-});
-
-var eventHandler = {
-  handleRequest: function (request) {
-    console.log("Connection from origin " + request.origin + ".");
-  },
-  handleMessage: function (message) {
-    console.log(JSON.stringify(message));
-  },
-  handleClose: function (connection) {
-    console.log("disconnected.");
-  },
-};
-wsServer.on("request", eventHandler.handleRequest);

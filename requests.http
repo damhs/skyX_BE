@@ -1,3 +1,8 @@
+GET http://172.10.7.60:3001/
+Content-Type: application/json
+
+###
+
 POST http://172.10.7.60:3001/api/auth/signIn
 Content-Type: application/json
 
