@@ -48,18 +48,6 @@ CREATE TABLE `FlightLog` (
 	`speed`	INT NULL
 );
 
-CREATE TABLE `Building` (
-	`buildingID`	VARCHAR(36)	NOT NULL,
-	`latitude`	DECIMAL(13,10)	NULL,
-	`longitude`	DECIMAL(13,10)	NULL,
-	`radius`	INT NULL,
-	`height`	INT NULL
-);
-
-ALTER TABLE `Building` ADD CONSTRAINT `PK_BUILDING` PRIMARY KEY (
-	`buildingID`
-);
-
 ALTER TABLE `User` ADD CONSTRAINT `PK_USER` PRIMARY KEY (
 	`id`
 );
