@@ -16,11 +16,6 @@ function initHttpServer() {
   // 라우터 설정
   app.use("/api/auth", authRouter);
 
-  // 기본 경로
-  app.get("/", (req, res) => {
-    res.send("Hello World!");
-  });
-
   // 서버 실행
   const server = app.listen(port, () => {
     console.log("Express server listening on port", port);
