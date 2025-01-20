@@ -13,6 +13,20 @@ const pool = mysql.createPool({
     queueLimit: 0,
 });
 
+// Building 테이블에서 원기둥(위도,경도,반경,높이) 데이터 조회
+async function getAllBuildings() {
+  const [rows] = await pool.query("SELECT * FROM Building");
+  return rows.map((b) => ({
+    buildingID: b.buildingID,
+    name: b.buildingName,
+    lat: Number(b.latitude),
+    lon: Number(b.longitude),
+    radius: Number(b.radius),
+    height: Number(b.height),
+  }));
+}
+
+
 // MySQL 연결 테스트
 const testConnection = async () => {
     try {
@@ -26,4 +40,4 @@ const testConnection = async () => {
   
 testConnection(); // 서버 시작 시 연결 테스트
 
-module.exports = pool;
+module.exports = { pool, getAllBuildings };

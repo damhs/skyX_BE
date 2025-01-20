@@ -18,8 +18,8 @@ CREATE TABLE `Flight` (
 CREATE TABLE `Place` (
 	`placeID`	VARCHAR(36)	NOT NULL,
 	`placeName`	VARCHAR(20)	NULL,
-	`latitude`	DECIMAL(18,15)	NULL,
-	`longitude`	DECIMAL(18,15)	NULL,
+	`latitude`	DECIMAL(13,10)	NULL,
+	`longitude`	DECIMAL(13,10)	NULL,
 	`altitude`	INT NULL,
 	`etc`	VARCHAR(255)	NULL
 );
@@ -42,10 +42,23 @@ CREATE TABLE `Recent` (
 CREATE TABLE `FlightLog` (
 	`flightLogID`	VARCHAR(36)	NOT NULL,
 	`flightID`	VARCHAR(36)	NOT NULL,
-	`latitude`	DECIMAL(18,15)	NULL,
-	`longitude`	DECIMAL(18,15)	NULL,
+	`latitude`	DECIMAL(13,10)	NULL,
+	`longitude`	DECIMAL(13,10)	NULL,
 	`altitude`	INT NULL,
 	`speed`	INT NULL
+);
+
+CREATE TABLE `Building` (
+	`buildingID`	VARCHAR(36)	NOT NULL,
+  `buildingName`	VARCHAR(50)	NULL,
+	`latitude`	DECIMAL(13,10)	NULL,
+	`longitude`	DECIMAL(13,10)	NULL,
+	`radius`	INT	NULL,
+	`height`	INT	NULL
+);
+
+ALTER TABLE `Building` ADD CONSTRAINT `PK_BUILDING` PRIMARY KEY (
+	`buildingID`
 );
 
 ALTER TABLE `User` ADD CONSTRAINT `PK_USER` PRIMARY KEY (

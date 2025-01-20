@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const authRouter = require("./Router/authRouter");
+const routeRouter = require("./Router/routeRouter");
 
 function initHttpServer() {
   const app = express();
@@ -15,6 +16,9 @@ function initHttpServer() {
 
   // 라우터 설정
   app.use("/api/auth", authRouter);
+
+  // 새로 추가된 경로 라우터
+  app.use("/api/route", routeRouter);
 
   // 서버 실행
   const server = app.listen(port, () => {
