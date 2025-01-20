@@ -1,3 +1,4 @@
+// authService.js
 const pool = require('../mysql.js');
 
 const authService = {

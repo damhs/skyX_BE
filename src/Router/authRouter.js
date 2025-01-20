@@ -1,3 +1,4 @@
+// authRouter.js
 const express = require('express');
 const authService = require('../Service/authService.js');
 const authRouter = express.Router();

@@ -93,6 +93,7 @@ function handleMessage(user_id, message) {
           direction, 
           speed 
         });
+        console.log("[WS] Updated location for user_id:", user_id);
       }
       // 채팅
       else if (data.type === "chat") {
