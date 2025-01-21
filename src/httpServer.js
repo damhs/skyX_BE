@@ -18,6 +18,10 @@ function initHttpServer() {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
 
+  app.get("/", (req, res) => {
+    res.send("Hello World!");
+  });
+
   // 라우터 설정
   app.use("/api/auth", authRouter);
   app.use("/api/building", buildingRouter);

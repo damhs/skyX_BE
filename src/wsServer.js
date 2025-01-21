@@ -32,6 +32,7 @@ function initWebSocketServer(server) {
   wsServer.on("request", async (request) => {
     // ... 기존 handshake 로직 동일
     // handshake 후 connection 생성:
+    const user_id = request.resourceURL.query.user_id;
     const connection = request.accept(null, request.origin);
     connections.set(user_id, connection);
 
