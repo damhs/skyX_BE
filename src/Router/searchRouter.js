@@ -18,15 +18,22 @@ searchRouter.post('/postFavorite', async (req, res) => {
   res.json('success');
 });
 
-searchRouter.get('/recentPlace', async (req, res) => {
+searchRouter.get('/recentBuilding', async (req, res) => {
   const userId = req.query.userId;
-  const result = await searchService.recentPlace(userId);
+  const result = await searchService.recentBuilding(userId);
   res.json(result);
 });
 
-searchRouter.get('/recentRoute', async (req, res) => {
+searchRouter.post('/postRecentBuilding', async (req, res) => {
+  const userId = req.body.user_id;
+  const buildingId = req.body.building_id;
+  await searchService.postRecentBuilding(userId, buildingId);
+  res.json('success');
+});
+
+searchRouter.get('/recentFlight', async (req, res) => {
   const userId = req.query.userId;
-  const result = await searchService.recentRoute(userId);
+  const result = await searchService.recentFlight(userId);
   res.json(result);
 })
 

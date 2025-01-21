@@ -35,9 +35,26 @@ Content-Type: application/json
 }
 
 ###
-# 최근 검색 장소 불러오기
+# 최근 검색 장소 불러오기 (최근 검색부터)
 
 GET http://172.10.7.60:3001/api/search/recentBuilding?user_id=asdf HTTP/1.1
+
+###
+# 최근 검색 장소 추가하기
+# 
+
+POST http://172.10.7.60:3001/api/search/postRecentBuilding HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": "asdf",
+  "building_id": 1
+}
+
+###
+# 최근 검색 경로 불러오기 (최근 검색부터)
+
+GET http://172.10.7.60:3001/api/search/recentFlight?user_id=asdf HTTP/1.1
 
 ###
 # 경로 검색
