@@ -10,6 +10,14 @@ searchRouter.get('/favorite', async (req, res) => {
   res.json(result);
 });
 
+searchRouter.post('/postFavorite', async (req, res) => {
+  const userId = req.body.user_id;
+  const buildingId = req.body.building_id;
+  const favoriteName = req.body.favorite_name;
+  await searchService.postFavorite(userId, buildingId, favoriteName);
+  res.json('success');
+});
+
 searchRouter.get('/recentPlace', async (req, res) => {
   const userId = req.query.userId;
   const result = await searchService.recentPlace(userId);
