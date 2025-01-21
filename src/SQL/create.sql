@@ -44,8 +44,20 @@ CREATE TABLE `Building` (
   `buildingName`	VARCHAR(50)	NULL,
 	`latitude`	DECIMAL(13,10)	NULL,
 	`longitude`	DECIMAL(13,10)	NULL,
-	`radius`	INT	NULL,
-	`height`	INT	NULL
+	`altitude`	INT NULL
+);
+
+CREATE TABLE `Obstacle` (
+  `obstacleID`	VARCHAR(36)	NOT NULL,
+  `obstacleName`	VARCHAR(50)	NULL,
+  `latitude`	DECIMAL(13,10)	NULL,
+  `longitude`	DECIMAL(13,10)	NULL,
+  `radius` INT NULL,
+  `height` INT NULL
+);
+
+ALTER TABLE `Obstacle` ADD CONSTRAINT `PK_OBSTACLE` PRIMARY KEY (
+  `obstacleID`
 );
 
 ALTER TABLE `Building` ADD CONSTRAINT `PK_BUILDING` PRIMARY KEY (
@@ -96,7 +108,7 @@ REFERENCES `Building` (
 ALTER TABLE `Favorite` ADD CONSTRAINT `FK_Building_TO_Favorite_1` FOREIGN KEY (
 	`buildingID`
 )
-REFERENCES `Buliding` (
+REFERENCES `Building` (
 	`buildingID`
 );
 
