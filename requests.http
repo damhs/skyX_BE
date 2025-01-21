@@ -30,7 +30,7 @@ Content-Type: application/json
 
 {
   "user_id": "asdf",
-  "building_id": 1,
+  "building_id": "4de6d2c8-d7c0-11ef-8650-fa163e2f32e9",
   "favorite_name": "home"
 }
 
@@ -40,15 +40,14 @@ Content-Type: application/json
 GET http://172.10.7.60:3001/api/search/recentBuilding?user_id=asdf HTTP/1.1
 
 ###
-# 최근 검색 장소 추가하기
-# 
+# 최근 검색 장소 추가하기 
 
 POST http://172.10.7.60:3001/api/search/postRecentBuilding HTTP/1.1
 Content-Type: application/json
 
 {
   "user_id": "asdf",
-  "building_id": 1
+  "building_id": "4de6d2c8-d7c0-11ef-8650-fa163e2f32e9"
 }
 
 ###

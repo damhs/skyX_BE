@@ -1,11 +1,11 @@
-// ./src/service/searchService.js
+// src/service/searchService.js
 const pool = require('../mysql.js');
 const uuid = require('uuid-sequential');
 
 const searchService = {
   favorite: async (userId) => {
     try {
-      const [result] = await pool.query('SELECT * FROM Building WHERE buildingID = (SELECT buildingID FROM Favorite WHERE id = ?)', [userId]);
+      const [result] = await pool.query('SELECT * FROM Building WHERE buildingID IN (SELECT buildingID FROM Favorite WHERE id = ?)', [userId]);
       return result;
     } catch (error) {
       console.error('favorite failed:', error);
@@ -24,7 +24,7 @@ const searchService = {
   },
   recentBuilding: async (userId) => {
     try {
-      const [result] = await pool.query('SELECT * FROM Building WHERE buildingID = (SELECT buildingID FROM Recent WHERE id = ? ORDER BY updatedAt DESC)', [userId]);
+      const [result] = await pool.query('SELECT * FROM Building WHERE buildingID IN (SELECT buildingID FROM Recent WHERE id = ? ORDER BY updatedAt DESC)', [userId]);
       return result;
     } catch (error) {
       console.error('recentBuilding failed:', error);

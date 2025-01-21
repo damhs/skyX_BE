@@ -5,7 +5,7 @@ const { search } = require('./authRouter.js');
 const searchRouter = express.Router();
 
 searchRouter.get('/favorite', async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.query.user_id;
   const result = await searchService.favorite(userId);
   res.json(result);
 });
@@ -19,7 +19,7 @@ searchRouter.post('/postFavorite', async (req, res) => {
 });
 
 searchRouter.get('/recentBuilding', async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.query.user_id;
   const result = await searchService.recentBuilding(userId);
   res.json(result);
 });
@@ -32,7 +32,7 @@ searchRouter.post('/postRecentBuilding', async (req, res) => {
 });
 
 searchRouter.get('/recentFlight', async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.query.user_id;
   const result = await searchService.recentFlight(userId);
   res.json(result);
 })
