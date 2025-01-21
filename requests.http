@@ -13,6 +13,11 @@ Content-Type: application/json
 }
 
 ###
+# 모든 건물들 불러오기
+
+GET http://172.10.7.60:3001/api/buliding/buildingList HTTP/1.1
+
+###
 # 즐겨찾는 장소 불러오기
 
 GET http://172.10.7.60:3001/api/search/favorite?user_id=asdf HTTP/1.1

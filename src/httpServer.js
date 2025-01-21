@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const authRouter = require("./Router/authRouter");
+const buildingRouter = require("./Router/buildingRouter");
 const searchRouter = require("./Router/searchRouter");
 const routeRouter = require("./Router/routeRouter");
 const pathRouter = require("./Router/pathRouter");
@@ -19,6 +20,7 @@ function initHttpServer() {
 
   // 라우터 설정
   app.use("/api/auth", authRouter);
+  app.use("/api/building", buildingRouter);
   app.use("/api/search", searchRouter);
 
   // 새로 추가된 경로 라우터
