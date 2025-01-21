@@ -1,28 +1,48 @@
 // Router/pathRouter.js
 const express = require("express");
 const pathRouter = express.Router();
-const { planSinglePathIgnoringOtherAgents, insertFlight } = require("../Service/pathService");
+const {
+  planSinglePathIgnoringOtherAgents,
+  insertFlight,
+} = require("../Service/pathService");
 
 /**
  * POST /api/path/single
- * body: { start:{ lat, lon, alt }, end:{ lat, lon, alt } }
+ * body: { user_id, originID, destinationID }
  */
 pathRouter.post("/single", async (req, res) => {
   try {
-    const { user_id, start, end } = req.body;
-    if (!start || !end) {
-      return res.status(400).json({ error: "Missing start or end" });
+    const { user_id, originID, destinationID } = req.body;
+    console.log("[DBG] POST /api/path/single called", req.body);
+
+    if (!user_id || !originID || !destinationID) {
+      return res.status(400).json({ error: "Missing parameters" });
     }
 
-    const path = await planSinglePathIgnoringOtherAgents(start, end);
-    insertFlight(user_id, start, end);
+    // 1) 비행 기록 삽입/갱신
+    const flightID = await insertFlight(user_id, originID, destinationID);
+
+    // 2) 경로 생성
+    const path = await planSinglePathIgnoringOtherAgents(originID, destinationID);
+
     if (path.length === 0) {
-      return res.json({ ok: false, message: "No valid path" });
+      console.log("[DBG] No valid path found");
+      return res.json({
+        ok: false,
+        flightID,
+        message: "No valid path found",
+      });
     }
-    res.json({ ok: true, path });
+
+    console.log("[DBG] Path found, length =", path.length);
+    return res.json({
+      ok: true,
+      flightID,
+      path,
+    });
   } catch (error) {
     console.error("Error in /api/path/single:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error", detail: error.message });
   }
 });
 

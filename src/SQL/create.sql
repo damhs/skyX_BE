@@ -43,8 +43,7 @@ CREATE TABLE `Building` (
 	`buildingID`	VARCHAR(36)	NOT NULL,
   `buildingName`	VARCHAR(50)	NULL,
 	`latitude`	DECIMAL(13,10)	NULL,
-	`longitude`	DECIMAL(13,10)	NULL,
-	`altitude`	INT NULL
+	`longitude`	DECIMAL(13,10)	NULL
 );
 
 CREATE TABLE `Obstacle` (

@@ -63,14 +63,8 @@ Content-Type: application/json
 
 {
   "user_id": "asdf",
-  "start": {
-    "latitude": 37.5662952,
-    "longitude": 126.9779451
-  },
-  "end": {
-    "latitude": 37.5662952,
-    "longitude": 126.9779451
-  }
+  "originID": "4de6d2c8-d7c0-11ef-8650-fa163e2f32e9",
+  "destinationID": "4de6fcc3-d7c0-11ef-8650-fa163e2f32e9"
 }
 
 ###
