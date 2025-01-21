@@ -14,6 +14,31 @@ Content-Type: application/json
 
 ###
 
+GET http://172.10.7.60:3001/api/search/favorite?user_id=asdf HTTP/1.1
+
+###
+
+GET http://172.10.7.60:3001/api/search/recentPlace?user_id=asdf HTTP/1.1
+
+###
+
+POST http://172.10.7.60:3001/api/path/single HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": "asdf",
+  "start": {
+    "latitude": 37.5662952,
+    "longitude": 126.9779451
+  },
+  "end": {
+    "latitude": 37.5662952,
+    "longitude": 126.9779451
+  }
+}
+
+###
+
 GET /ws?user_id=asdf HTTP/1.1
 Host: 172.10.7.60:3001/api/auth/signIn
 Upgrade: websocket

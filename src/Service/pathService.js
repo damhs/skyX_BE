@@ -1,155 +1,114 @@
-// service/pathService.js
-const { getAllBuildings } = require("../mysql.js");
+// Service/pathService.js
+const uuid = require("uuid-sequential");
+const { getAllBuildings, pool } = require("../mysql.js");
 
-/** 
- * 1) (lat, lon) <-> (x, y) 변환 (간단 평면 근사)
- *   - 실제론 Haversine/UTM 사용 권장
- */
-const LAT_ORIGIN = 36.3725;
-const LON_ORIGIN = 127.3608;
-
-function latLonToXY(lat, lon) {
-  const scale = 111319; // 약 1도 ~ 111,319m
-  const x = (lon - LON_ORIGIN) * Math.cos(LAT_ORIGIN * Math.PI / 180) * scale;
-  const y = (lat - LAT_ORIGIN) * scale;
-  return { x, y };
+// ------------------ Haversine + 고도 거리 ------------------
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // 지구 반경 (m)
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLon = (lon2 - lon1) * toRad;
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(lat1*toRad)*Math.cos(lat2*toRad)*Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // meters
 }
 
-function xyToLatLon(x, y) {
-  const scale = 111319;
-  const lat = y / scale + LAT_ORIGIN;
-  const lon = x / (Math.cos(LAT_ORIGIN * Math.PI / 180) * scale) + LON_ORIGIN;
-  return { lat, lon };
+// 3D 거리 = sqrt( (수평거리)^2 + (고도차)^2 )
+function distance3D(lat1, lon1, alt1, lat2, lon2, alt2) {
+  const dist2D = haversineDistance(lat1, lon1, lat2, lon2);
+  const dAlt = alt2 - alt1;
+  return Math.sqrt(dist2D*dist2D + dAlt*dAlt);
 }
 
-/** 
- * 2) 건물 충돌 판정 (원기둥)
- *    - point (x, y, z)
- *    - building: { lat, lon, radius, height }
- */
-function collideWithBuilding(x, y, z, building) {
-  const { x: bx, y: by } = latLonToXY(building.lat, building.lon);
-  const dist2D = Math.sqrt((x - bx) ** 2 + (y - by) ** 2);
-  if (dist2D <= building.radius && z >= 0 && z <= building.height) {
-    return true;
+// ------------------ 건물 충돌 판정(원기둥) ------------------
+function collideBuilding(lat, lon, alt, building) {
+  const d2D = haversineDistance(lat, lon, building.lat, building.lon);
+  if (d2D <= building.radius && alt >= 0 && alt <= building.height) {
+    return true; // 충돌
   }
   return false;
 }
 
-/** 
- * 3) 이미 확정된 경로(시간 포함)와 충돌 판정
- *    - existingPaths: [
- *        [ {x, y, z, t}, {x, y, z, t}, ... ],  // 첫번째 에이전트 경로
- *        ...
- *      ]
- *    - "비행체 반경"이나 "안전거리"를 감안해서 dist <= SAFE_DIST 이면 충돌로 볼 수 있음
- *    - 시간까지 비교: t가 같을 때 가까우면 충돌
- */
-function collideWithExistingPaths(x, y, z, t, existingPaths, safeDist = 10) {
-  for (const path of existingPaths) {
-    for (const p of path) {
-      if (p.t === t) {
-        const dx = x - p.x;
-        const dy = y - p.y;
-        const dz = z - p.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist <= safeDist) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
+// ------------------ 3D A* ------------------
 /**
- * 4) "시공간 A*" 구현 (4D: x,y,z,t)
- *    - 격자화된 4차원 공간을 탐색: 상태 = (x, y, z, t)
- *    - 다음 상태 = (x +/- step, y +/- step, z +/- step, t+1) 등
- *    - 장애물: 건물/기존 비행체 경로
- *    - 한 스텝(1초)에 이동할 수 있는 거리 제한 (예: 10m)
+ * @param {Object} start - { lat, lon, alt }
+ * @param {Object} end   - { lat, lon, alt }
+ * @param {Array} buildings
+ * @param {Number} maxAlt   최대 고도
+ * @param {Number} stepDist 한 번에 이동할 수 있는 최대거리 (m)
  */
-function aStarTime4D(start3D, end3D, buildings, existingPaths) {
-  // 설정
-  const MAX_TIME = 300;      // 최대 300초까지 탐색 (데모용)
-  const STEP_DIST = 10;      // 1초 동안 이동 가능 거리(10m)
-  const Z_STEP = 10;         // 고도 이동 step
-  const SAFE_DIST = 10;      // 비행체 간 안전 거리
-  // 검색 범위
-  const BOUNDS = {
-    xMin: -300, xMax: 300,
-    yMin: -300, yMax: 300,
-    zMin: 0,    zMax: 200,
-  };
-
-  // A* 자료구조
+function findPath3D(start, end, buildings, maxAlt=200, stepDist=10) {
+  // 1) A* 자료구조
   const openSet = [];
-  const cameFrom = new Map();  // key: "x,y,z,t"
+  const cameFrom = new Map(); // key: "lat,lon,alt"
   const gScore = new Map();
 
-  // 초기 상태
+  // 2) 초기 상태
   const startState = {
-    x: quantize(start3D.x),
-    y: quantize(start3D.y),
-    z: quantize(start3D.z),
-    t: 0,
+    lat: parseFloat(start.lat.toFixed(5)),
+    lon: parseFloat(start.lon.toFixed(5)),
+    alt: start.alt || 0,
   };
   const endState = {
-    x: quantize(end3D.x),
-    y: quantize(end3D.y),
-    z: quantize(end3D.z),
+    lat: parseFloat(end.lat.toFixed(5)),
+    lon: parseFloat(end.lon.toFixed(5)),
+    alt: end.alt || 0,
   };
 
   const startKey = stateKey(startState);
   gScore.set(startKey, 0);
   openSet.push({
     ...startState,
-    f: heuristic4D(startState, endState),
+    f: heuristic(startState, endState),
   });
 
   const visited = new Set();
 
   while (openSet.length > 0) {
-    // f값이 가장 작은 상태를 꺼냄
+    // 2-1) f값이 가장 작은 state를 pop
     openSet.sort((a, b) => a.f - b.f);
     const current = openSet.shift();
-    const currentKey = stateKey(current);
+    const currKey = stateKey(current);
+    visited.add(currKey);
 
-    // 목표 도달 판정 (z까지 정확히 맞출 필요가 있다면 아래 식)
-    // 여기선 x,y만 도달하면 OK로 볼 수도 있지만,
-    // 여기서는 z까지도 맞춘다고 가정.
-    if (
-      current.x === endState.x &&
-      current.y === endState.y &&
-      current.z === endState.z
-    ) {
-      // 경로 복원
+    // 2-2) 도착 판정
+    const distGoal = distance3D(
+      current.lat, current.lon, current.alt,
+      endState.lat, endState.lon, endState.alt
+    );
+    if (distGoal < 5) {
+      // 5m 이내면 도착으로 간주
       return reconstructPath(cameFrom, current);
     }
 
-    visited.add(currentKey);
-
-    // 시간 초과
-    if (current.t > MAX_TIME) continue;
-
-    // 이웃 상태들
-    const neighbors = getNeighbors4D(current, STEP_DIST, Z_STEP, BOUNDS);
+    // 3) 이웃 생성
+    const neighbors = getNeighbors(current, stepDist, maxAlt);
     for (const nb of neighbors) {
-      // 장애물 체크(건물 + 기존 비행체)
-      if (isObstacle4D(nb, buildings, existingPaths, SAFE_DIST)) {
-        continue;
-      }
       const nbKey = stateKey(nb);
       if (visited.has(nbKey)) continue;
 
-      // gScore 계산
-      const costSoFar = gScore.get(currentKey) || Infinity;
-      const tentativeG = costSoFar + distance4D(current, nb);
+      // 3-1) 건물 충돌 체크
+      const collision = buildings.some((b) => collideBuilding(nb.lat, nb.lon, nb.alt, b));
+      if (collision) {
+        continue; 
+      }
+
+      // 3-2) 이동 비용
+      const moveCost = distance3D(
+        current.lat, current.lon, current.alt,
+        nb.lat, nb.lon, nb.alt
+      );
+      const costSoFar = gScore.get(currKey) || Infinity;
+      const tentativeG = costSoFar + moveCost;
       const oldG = gScore.get(nbKey) || Infinity;
+
       if (tentativeG < oldG) {
-        cameFrom.set(nbKey, currentKey);
+        cameFrom.set(nbKey, currKey);
         gScore.set(nbKey, tentativeG);
-        const fVal = tentativeG + heuristic4D(nb, endState);
+        const fVal = tentativeG + heuristic(nb, endState);
+
         const foundIdx = openSet.findIndex((o) => stateKey(o) === nbKey);
         if (foundIdx >= 0) {
           openSet[foundIdx].f = fVal;
@@ -160,82 +119,76 @@ function aStarTime4D(start3D, end3D, buildings, existingPaths) {
     }
   }
 
-  // 실패: 경로 없음
+  // 경로 없음
   return [];
 }
 
-/** 이웃 상태 생성: 1초 후 가능한 이동 (x±dist, y±dist, z±dist, t+1) */
-function getNeighbors4D(state, stepDist, zStep, B) {
-  const res = [];
-  const { x, y, z, t } = state;
+/**
+ * 이웃 상태 생성:
+ * - 수평으로 ±deltaLat, ±deltaLon, 대각선 등
+ * - 고도 ± altStep
+ * - 실제 거리로 8~10m 정도가 1스텝
+ *   (30km/h=8.33m/s, 1초당 8~10m 이동 가능이라고 보면 됨)
+ * - 여기선 간단히 lat, lon을 0.00005° (~5m)씩 움직이고,
+ *   alt는 10m씩 움직이게 하겠습니다.
+ */
+function getNeighbors(state, stepDist, maxAlt) {
+  const latStep = 0.00005; // 약 5m
+  const lonStep = 0.00005;
+  const altStep = 10;
 
-  // 3D 방향(6, 18, 26방 등 원하는 만큼) 여기선 7가지(멈춤 포함) 예시
-  // 실사용에 맞게 늘리거나 줄이세요.
-  const moves = [
-    [0, 0, 0],          // 제자리 (속도=0)
-    [ stepDist, 0, 0 ],
-    [-stepDist, 0, 0 ],
-    [0,  stepDist, 0 ],
-    [0, -stepDist, 0 ],
-    [0, 0,  zStep],
-    [0, 0, -zStep],
+  // 기본 이동 후보 (8방향 + 정지)
+  const deltas = [
+    [ 0, 0 ],
+    [ latStep, 0 ],
+    [-latStep, 0 ],
+    [ 0, lonStep ],
+    [ 0,-lonStep ],
+    [ latStep, lonStep ],
+    [ latStep,-lonStep ],
+    [-latStep, lonStep ],
+    [-latStep,-lonStep ],
   ];
 
-  for (const [dx, dy, dz] of moves) {
-    const nx = x + dx;
-    const ny = y + dy;
-    const nz = z + dz;
-    const nt = t + 1;
+  const { lat, lon, alt } = state;
+  const neighbors = [];
 
-    if (nx < B.xMin || nx > B.xMax) continue;
-    if (ny < B.yMin || ny > B.yMax) continue;
-    if (nz < B.zMin || nz > B.zMax) continue;
-    // t는 일단 MAX_TIME 체크는 위에서
-    res.push({ x: nx, y: ny, z: nz, t: nt });
-  }
-  return res;
-}
+  for (const [dLat, dLon] of deltas) {
+    // 고도는 alt ± altStep, alt 그대로
+    for (const dAlt of [0, altStep, -altStep]) {
+      const nextAlt = alt + dAlt;
+      if (nextAlt < 0 || nextAlt > maxAlt) {
+        continue;
+      }
 
-/** 장애물 체크 (4D) */
-function isObstacle4D(state, buildings, existingPaths, safeDist) {
-  const { x, y, z, t } = state;
-  // 건물 충돌
-  for (const b of buildings) {
-    if (collideWithBuilding(x, y, z, b)) {
-      return true;
+      // 새 좌표
+      const newLat = parseFloat((lat + dLat).toFixed(5));
+      const newLon = parseFloat((lon + dLon).toFixed(5));
+      
+      // 실제 3D 이동 거리가 stepDist=10m 이하인지 확인?
+      // 여기서는 "최대 이동 거리"를 기준으로 필터링할 수도 있음
+      const dist3d = distance3D(lat, lon, alt, newLat, newLon, nextAlt);
+      if (dist3d <= stepDist + 0.001) {
+        neighbors.push({
+          lat: newLat,
+          lon: newLon,
+          alt: nextAlt,
+        });
+      }
     }
   }
-  // 다른 경로와 시간 충돌
-  if (collideWithExistingPaths(x, y, z, t, existingPaths, safeDist)) {
-    return true;
-  }
-  return false;
+
+  return neighbors;
 }
 
-/** 4D 유클리드 거리(시간 축은 휴리스틱에 직접적으로 반영X, 또는 가중치) */
-function distance4D(a, b) {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = a.z - b.z;
-  return Math.sqrt(dx*dx + dy*dy + dz*dz);
+/** 휴리스틱: 목표까지의 3D 직선거리 */
+function heuristic(a, b) {
+  return distance3D(a.lat, a.lon, a.alt, b.lat, b.lon, b.alt);
 }
 
-/** 휴리스틱(3D 거리) */
-function heuristic4D(current, goal) {
-  const dx = current.x - goal.x;
-  const dy = current.y - goal.y;
-  const dz = current.z - goal.z;
-  return Math.sqrt(dx*dx + dy*dy + dz*dz);
-}
-
-/** 정수화 (격자화) */
-function quantize(val, step = 10) {
-  return Math.round(val / step) * step;
-}
-
-/** key for 4D */
+/** 상태 -> key */
 function stateKey(s) {
-  return `${s.x},${s.y},${s.z},${s.t}`;
+  return `${s.lat},${s.lon},${s.alt}`;
 }
 
 /** 경로 복원 */
@@ -244,62 +197,59 @@ function reconstructPath(cameFrom, current) {
   let key = stateKey(current);
 
   while (cameFrom.has(key)) {
-    const [x, y, z, t] = key.split(",").map(Number);
-    path.unshift({ x, y, z, t });
+    const [lat, lon, alt] = key.split(",").map(Number);
+    path.unshift({ lat, lon, alt });
     key = cameFrom.get(key);
   }
   // start도 추가
-  const [sx, sy, sz, st] = key.split(",").map(Number);
-  path.unshift({ x: sx, y: sy, z: sz, t: st });
+  const [slat, slon, salt] = key.split(",").map(Number);
+  path.unshift({ lat: slat, lon: slon, alt: salt });
 
   return path;
 }
 
-/** 
- * 5) 다중 에이전트(순차) + 시간 고려
- *    - agents: [{agentID, start:{lat,lon,alt}, end:{lat,lon,alt}}, ...]
- *    - 각 에이전트마다 시공간 A* 실행
- *    - 이전 에이전트들의 경로(4D)를 'existingPaths'에 누적
+/**
+ * 외부에 제공할 함수:
+ * @param {Object} start { lat, lon, alt }
+ * @param {Object} end   { lat, lon, alt }
+ * @returns [{ lat, lon, alt }, ...] 경로
  */
-async function planMultiAgentPathsTime(agents) {
-  // 1) 건물 정보 로드
+async function planSinglePathIgnoringOtherAgents(start, end) {
+  // 1) DB에서 건물 정보 로드
   const buildings = await getAllBuildings();
 
-  const results = [];
-  // 모든 이전 에이전트 경로(4D)를 저장: [ [ {x,y,z,t}, ... ], ... ]
-  const existingPaths = [];
+  // 2) 최대 이동 가능 거리(1스텝) 설정
+  //  30km/h = 8.33m/s => "1초당 8~10m" 이동 가능.
+  //  여기서는 10m로 두겠습니다.
+  const stepDist = 10;
 
-  for (const ag of agents) {
-    const { lat: slat, lon: slon, alt: salt=0 } = ag.start;
-    const { lat: elat, lon: elon, alt: ealt=0 } = ag.end;
-    const startXY = latLonToXY(slat, slon);
-    const endXY   = latLonToXY(elat, elon);
+  // 3) 최대 고도 (예: 200m)
+  const maxAlt = 200;
 
-    const start3D = { x: startXY.x, y: startXY.y, z: salt };
-    const end3D   = { x: endXY.x,   y: endXY.y,   z: ealt };
+  // 4) A* 탐색
+  const path = findPath3D(start, end, buildings, maxAlt, stepDist);
+  return path;
+}
 
-    // A*
-    const path4D = aStarTime4D(start3D, end3D, buildings, existingPaths);
-
-    // 4D → lat,lon,alt + time
-    const pathConverted = path4D.map((p) => {
-      const { lat, lon } = xyToLatLon(p.x, p.y);
-      return { lat, lon, alt: p.z, t: p.t };
-    });
-
-    // 결과 저장
-    results.push({
-      agentID: ag.agentID,
-      path: pathConverted,
-    });
-
-    // 기존 경로 목록에 추가
-    existingPaths.push(path4D);
-  }
-
-  return results;
+async function insertFlight(id, start, end) {
+  const flightID = uuid();
+  const originID = await pool.query(
+    'SELECT buildingID FROM Building WHERE latitude = ? AND longitude = ?',
+    [start.lat, start.lon]
+  )
+  const destinationID = await pool.query(
+    'SELECT buildingID FROM Building WHERE latitude = ? AND longitude = ?',
+    [end.lat, end.lon]
+  )
+  const updatedAt = new Date();
+  const [result] = await pool.query(
+    'INSERT INTO Flight (flightID, id, originID, destinationID, updatedAt) VALUES (?, ?, ?, ?, ?)',
+    [flightID, id, originID, destinationID, updatedAt]
+  );
+  return { flightID, id, originID, destinationID, updatedAt };
 }
 
 module.exports = {
-  planMultiAgentPathsTime,
+  planSinglePathIgnoringOtherAgents,
+  insertFlight,
 };

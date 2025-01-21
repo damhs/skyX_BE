@@ -15,18 +15,9 @@ CREATE TABLE `Flight` (
 	`updatedAt`	DATETIME	NULL
 );
 
-CREATE TABLE `Place` (
-	`placeID`	VARCHAR(36)	NOT NULL,
-	`placeName`	VARCHAR(20)	NULL,
-	`latitude`	DECIMAL(13,10)	NULL,
-	`longitude`	DECIMAL(13,10)	NULL,
-	`altitude`	INT NULL,
-	`etc`	VARCHAR(255)	NULL
-);
-
 CREATE TABLE `Favorite` (
 	`favoriteID`	VARCHAR(36)	NOT NULL,
-	`placeID`	VARCHAR(36)	NOT NULL,
+	`buildingID`	VARCHAR(36)	NOT NULL,
 	`id`	VARCHAR(20)	NOT NULL,
 	`favoriteName`	VARCHAR(20)	NULL,
 	`updatedAt`	DATETIME	NULL
@@ -34,7 +25,7 @@ CREATE TABLE `Favorite` (
 
 CREATE TABLE `Recent` (
 	`recentID`	VARCHAR(36)	NOT NULL,
-	`placeID`	VARCHAR(36)	NOT NULL,
+	`buildingID`	VARCHAR(36)	NOT NULL,
 	`id`	VARCHAR(20)	NOT NULL,
 	`updatedAt`	DATETIME	NULL
 );
@@ -69,10 +60,6 @@ ALTER TABLE `Flight` ADD CONSTRAINT `PK_FLIGHT` PRIMARY KEY (
 	`flightID`
 );
 
-ALTER TABLE `Place` ADD CONSTRAINT `PK_PLACE` PRIMARY KEY (
-	`placeID`
-);
-
 ALTER TABLE `Favorite` ADD CONSTRAINT `PK_FAVORITE` PRIMARY KEY (
 	`favoriteID`
 );
@@ -92,26 +79,27 @@ REFERENCES `User` (
 	`id`
 );
 
-ALTER TABLE `Flight` ADD CONSTRAINT `FK_Place_TO_Flight_1` FOREIGN KEY (
+ALTER TABLE `Flight` ADD CONSTRAINT `FK_Building_TO_Flight_1` FOREIGN KEY (
 	`originID`
 )
-REFERENCES `Place` (
-	`placeID`
+REFERENCES `Building` (
+	`buildingID`
 );
 
-ALTER TABLE `Flight` ADD CONSTRAINT `FK_Place_TO_Flight_2` FOREIGN KEY (
+ALTER TABLE `Flight` ADD CONSTRAINT `FK_Building_TO_Flight_2` FOREIGN KEY (
 	`destinationID`
 )
-REFERENCES `Place` (
-	`placeID`
+REFERENCES `Building` (
+	`buildingID`
 );
 
-ALTER TABLE `Favorite` ADD CONSTRAINT `FK_Place_TO_Favorite_1` FOREIGN KEY (
-	`placeID`
+ALTER TABLE `Favorite` ADD CONSTRAINT `FK_Building_TO_Favorite_1` FOREIGN KEY (
+	`buildingID`
 )
-REFERENCES `Place` (
-	`placeID`
+REFERENCES `Buliding` (
+	`buildingID`
 );
+
 
 ALTER TABLE `Favorite` ADD CONSTRAINT `FK_User_TO_Favorite_1` FOREIGN KEY (
 	`id`
@@ -120,11 +108,11 @@ REFERENCES `User` (
 	`id`
 );
 
-ALTER TABLE `Recent` ADD CONSTRAINT `FK_Place_TO_Recent_1` FOREIGN KEY (
-	`placeID`
+ALTER TABLE `Recent` ADD CONSTRAINT `FK_Building_TO_Recent_1` FOREIGN KEY (
+	`buildingID`
 )
-REFERENCES `Place` (
-	`placeID`
+REFERENCES `Building` (
+	`buildingID`
 );
 
 ALTER TABLE `Recent` ADD CONSTRAINT `FK_User_TO_Recent_1` FOREIGN KEY (
