@@ -1,5 +1,6 @@
 // src/Service/pathService.js
 const pool = require("../mysql.js");
+const { client } = require("../redis.js");
 const uuid = require("uuid-sequential");
 
 /**
@@ -387,60 +388,86 @@ async function insertFlight(id, originID, destinationID) {
  * 4) 26방향 3D A* 실행(stepDist=8.33, maxAlt=200)
  * 5) 경로 반환
  */
+// async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
+//   console.log("[DBG] planSinglePathIgnoringOtherAircrafts() called");
+//   console.log("[DBG] originID =", originID, "destinationID =", destinationID);
+
+//   try {
+//     // 1) 장애물 가져오기
+//     const obstacles = await getAllObstacles();
+
+//     // 2) 출발/도착 건물
+//     const startBuilding = await getBuilding(originID);
+//     const endBuilding = await getBuilding(destinationID);
+//     if (!startBuilding || !endBuilding) {
+//       throw new Error("Invalid building ID(s)");
+//     }
+
+//     // 3) 출발/도착 건물 위치 기반 -> 해당 위치가 속한 장애물 찾기
+//     const startObstacle = obstacles.find((o) =>
+//       collideObstacle(startBuilding.lat, startBuilding.lon, 0, o)
+//     );
+//     const endObstacle = obstacles.find((o) =>
+//       collideObstacle(endBuilding.lat, endBuilding.lon, 0, o)
+//     );
+
+//     console.log("[DBG] startObstacle =", startObstacle);
+//     console.log("[DBG] endObstacle =", endObstacle);
+
+//     // 출발지 고도 = startObstacle.height + 20 (여유 공간)
+//     const startAlt = startObstacle.height + 10;
+//     const endAlt = endObstacle.height + 10;
+
+//     console.log(`[DBG] startAlt = ${startAlt}, endAlt = ${endAlt}`);
+
+//     // 4) A* 파라미터
+//     const stepDist = 8.33; // 1초당 최대 이동
+//     const maxAlt = 200; // 최대 고도(예시)
+
+//     // 시작/끝 상태
+//     const start = {
+//       lat: startBuilding.lat,
+//       lon: startBuilding.lon,
+//       alt: startAlt,
+//     };
+//     const end = {
+//       lat: endBuilding.lat,
+//       lon: endBuilding.lon,
+//       alt: endAlt,
+//     };
+
+//     // 5) 3D A* 탐색
+//     const path = await findPath3D(start, end, obstacles, maxAlt, stepDist);
+
+//     path.push(end); // 마지막 도착지 추가
+
+//     return path;
+//   } catch (error) {
+//     console.error("[ERR] planSinglePathIgnoringOtherAircrafts:", error);
+//     throw error;
+//   }
+// }
+
 async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
   console.log("[DBG] planSinglePathIgnoringOtherAircrafts() called");
   console.log("[DBG] originID =", originID, "destinationID =", destinationID);
 
   try {
-    // 1) 장애물 가져오기
-    const obstacles = await getAllObstacles();
-
-    // 2) 출발/도착 건물
-    const startBuilding = await getBuilding(originID);
-    const endBuilding = await getBuilding(destinationID);
-    if (!startBuilding || !endBuilding) {
-      throw new Error("Invalid building ID(s)");
+    // 1) Redis에서 경로 조회
+    const key = `path:${originID}:${destinationID}`;
+    const cachedValue = await redisClient.get(key);
+    if (cachedValue) {
+      if (cachedValue === "no_path") {
+        console.log(`[DBG] Found 'no_path' in Redis for ${key}.`);
+        throw new Error("No path found (cached)");
+      }
+      console.log(`[DBG] Found path in Redis for ${key}.`);
+      return JSON.parse(cachedValue);
     }
 
-    // 3) 출발/도착 건물 위치 기반 -> 해당 위치가 속한 장애물 찾기
-    const startObstacle = obstacles.find((o) =>
-      collideObstacle(startBuilding.lat, startBuilding.lon, 0, o)
-    );
-    const endObstacle = obstacles.find((o) =>
-      collideObstacle(endBuilding.lat, endBuilding.lon, 0, o)
-    );
-
-    console.log("[DBG] startObstacle =", startObstacle);
-    console.log("[DBG] endObstacle =", endObstacle);
-
-    // 출발지 고도 = startObstacle.height + 20 (여유 공간)
-    const startAlt = startObstacle.height + 10;
-    const endAlt = endObstacle.height + 10;
-
-    console.log(`[DBG] startAlt = ${startAlt}, endAlt = ${endAlt}`);
-
-    // 4) A* 파라미터
-    const stepDist = 8.33; // 1초당 최대 이동
-    const maxAlt = 200; // 최대 고도(예시)
-
-    // 시작/끝 상태
-    const start = {
-      lat: startBuilding.lat,
-      lon: startBuilding.lon,
-      alt: startAlt,
-    };
-    const end = {
-      lat: endBuilding.lat,
-      lon: endBuilding.lon,
-      alt: endAlt,
-    };
-
-    // 5) 3D A* 탐색
-    const path = await findPath3D(start, end, obstacles, maxAlt, stepDist);
-
-    path.push(end); // 마지막 도착지 추가
-
-    return path;
+    // 2) 사전 계산에서 없다면 "no_path" 상태일 가능성
+    console.log(`[DBG] No path found in Redis for ${key}. Possibly not precomputed.`);
+    throw new Error("No path in Redis");
   } catch (error) {
     console.error("[ERR] planSinglePathIgnoringOtherAircrafts:", error);
     throw error;

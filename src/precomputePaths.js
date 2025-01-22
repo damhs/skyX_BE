@@ -27,6 +27,7 @@ async function precomputeAllPaths() {
     // 모든 쌍(65C2) 경로 계산
     console.log("[Precompute] Start computing paths for all building pairs...");
     let count = 0;
+    let skipped = 0;
 
     for (let i = 0; i < buildings.length; i++) {
       for (let j = i + 1; j < buildings.length; j++) {
@@ -35,6 +36,20 @@ async function precomputeAllPaths() {
 
         const originID = b1.buildingID;
         const destinationID = b2.buildingID;
+
+        // Redis 키: 정방향 및 역방향 경로
+        const keyForward = `path:${originID}:${destinationID}`;
+        const keyReverse = `path:${destinationID}:${originID}`;
+
+        // Redis에 경로 존재 여부 확인
+        const existsForward = await client.exists(keyForward);
+        const existsReverse = await client.exists(keyReverse);
+
+        if (existsForward || existsReverse) {
+          console.log(`[Precompute] Skipping ${originID} -> ${destinationID}, path already exists.`);
+          skipped++;
+          continue; // 경로가 이미 존재하면 건너뜀
+        }
 
         // 출발지/도착지 고도를 장애물 height + 10으로 설정
         const startObstacle = obstacles.find((o) =>
@@ -67,10 +82,6 @@ async function precomputeAllPaths() {
           // 역방향 경로 생성 (정방향 경로를 뒤집음)
           const reversePath = [...path].reverse();
 
-          // Redis 키: 정방향 및 역방향 경로
-          const keyForward = `path:${originID}:${destinationID}`;
-          const keyReverse = `path:${destinationID}:${originID}`;
-
           // Redis 저장
           await client.set(keyForward, JSON.stringify(path));
           await client.set(keyReverse, JSON.stringify(reversePath));
@@ -79,8 +90,6 @@ async function precomputeAllPaths() {
         } catch (err) {
           console.warn(`[Precompute] Failed paths for ${originID} <-> ${destinationID}`, err);
           // Redis에 "no_path" 등으로 표시
-          const keyForward = `path:${originID}:${destinationID}`;
-          const keyReverse = `path:${destinationID}:${originID}`;
           await client.set(keyForward, "no_path");
           await client.set(keyReverse, "no_path");
         }
@@ -89,7 +98,7 @@ async function precomputeAllPaths() {
       }
     }
 
-    console.log(`[Precompute] All done. Computed ${count} pairs.`);
+    console.log(`[Precompute] All done. Computed ${count} pairs, skipped ${skipped} existing paths.`);
     await client.disconnect();
     process.exit(0);
   } catch (err) {
