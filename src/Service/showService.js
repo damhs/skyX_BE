@@ -57,6 +57,28 @@ const showService = {
       console.error("Error fetching route:", err);
       res.status(500).send("Server Error");
     }
+  },
+  getPosition: async (id) => {
+    try {
+      const [rows] = await pool.query(
+        "SELECT latitude, longitude, altitude FROM User WHERE id = ?", [id]
+      );
+      return rows[0];
+    } catch (err) {
+      console.error("Error fetching user position:", err);
+      res.status(500).send("Server Error");
+    }
+  },
+  postPosition: async (id, lat, lon, alt) => {
+    try {
+      const [result] = await pool.query(
+        "UPDATE User SET latitude = ?, longitude = ?, altitude = ? WHERE id = ?", [lat, lon, alt, id]
+      )
+      return result;
+    } catch (err) {
+      console.error("Error updating user position:", err);
+      res.status(500).send("Server Error");
+    }
   }
 };
 

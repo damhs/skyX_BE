@@ -77,6 +77,22 @@ GET http://172.10.7.60:3001/api/show/flight?user_id=asdf&originID=4de6dddf-d7c0-
 
 ###
 
+GET http://172.10.7.60:3001/api/show/position?user_id=asdf HTTP/1.1
+
+###
+
+POST http://172.10.7.60:3001/api/show/position HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": "asdf",
+  "latitude": 37.5662952,
+  "longitude": 126.9779451,
+  "altitude": 0
+}
+
+###
+
 GET /ws?user_id=asdf HTTP/1.1
 Host: 172.10.7.60:3001/api/auth/signIn
 Upgrade: websocket

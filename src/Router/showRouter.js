@@ -14,4 +14,16 @@ showRouter.get('/flight', async (req, res) => {
   res.json(result);
 });
 
+showRouter.get('/position', async (req, res) => {
+  const { user_id } = req.query;
+  const result = await showService.getPosition(user_id);
+  res.json(result);
+});
+
+showRouter.post('/position', async (req, res) => {
+  const { user_id, latitude, longitude, altitude } = req.body;
+  const result = await showService.postPosition(user_id, latitude, longitude, altitude);
+  res.json(result);
+});
+
 module.exports = showRouter;
