@@ -40,7 +40,6 @@ async function getBuilding(buildingID) {
   const b = rows[0];
   const building = {
     buildingID: b.buildingID,
-    // altitude 컬럼이 없다면, lat/lon만
     lat: Number(b.latitude),
     lon: Number(b.longitude),
   };
@@ -50,36 +49,27 @@ async function getBuilding(buildingID) {
 
 /**
  * ============================
- * 2) Haversine & 3D 거리 계산
+ * 2) 거리 계산 함수들
  * ============================
  */
 
 /**
- * (lat1, lon1)과 (lat2, lon2)의 2D(지표면) 거리(m) 계산
- * 구면(지구) 거리 → Haversine 공식
+ * Equirectangular Approximation 거리 계산
  */
-function haversineDistance(lat1, lon1, lat2, lon2) {
+function equirectangularDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // 지구 평균 반지름(m)
   const toRad = Math.PI / 180;
-  const dLat = (lat2 - lat1) * toRad;
-  const dLon = (lon2 - lon1) * toRad;
-
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * toRad) *
-    Math.cos(lat2 * toRad) *
-    Math.sin(dLon / 2) ** 2;
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // meter
+  const x = (lon2 - lon1) * toRad * Math.cos(((lat1 + lat2) / 2) * toRad);
+  const y = (lat2 - lat1) * toRad;
+  return Math.sqrt(x * x + y * y) * R;
 }
 
 /**
  * (lat1, lon1, alt1)와 (lat2, lon2, alt2)의 3D 거리(m)
- *  => sqrt( (2D지표거리)^2 + (고도차)^2 )
+ *  => sqrt( (2D 거리)^2 + (고도차)^2 )
  */
 function distance3D(lat1, lon1, alt1, lat2, lon2, alt2) {
-  const dist2D = haversineDistance(lat1, lon1, lat2, lon2);
+  const dist2D = equirectangularDistance(lat1, lon1, lat2, lon2);
   const dAlt = alt2 - alt1;
   return Math.sqrt(dist2D * dist2D + dAlt * dAlt);
 }
@@ -94,14 +84,14 @@ function distance3D(lat1, lon1, alt1, lat2, lon2, alt2) {
  * (x,y) 수평거리 <= radius && 고도(alt)가 [0, height] 범위면 충돌
  */
 function collideObstacle(lat, lon, alt, obstacle) {
-  const dist2D = haversineDistance(lat, lon, obstacle.lat, obstacle.lon);
-  // alt가 obstacle.height 이하라면 충돌로 본다
-  const collision = dist2D <= obstacle.radius && alt >= 0 && alt <= obstacle.height;
+  const dist2D = equirectangularDistance(lat, lon, obstacle.lat, obstacle.lon);
+  const collision =
+    dist2D <= obstacle.radius && alt >= 0 && alt <= obstacle.height;
 
   if (collision) {
     console.log(
       `[DBG] Collision detected at lat:${lat}, lon:${lon}, alt:${alt} ` +
-      `with obstacle lat:${obstacle.lat}, lon:${obstacle.lon}, h:${obstacle.height}`
+        `with obstacle lat:${obstacle.lat}, lon:${obstacle.lon}, radius:${obstacle.radius}, height:${obstacle.height}`
     );
   }
   return collision;
@@ -132,18 +122,20 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
     const gScore = new Map();
 
     const startState = {
-      lat: parseFloat(start.lat.toFixed(5)),
-      lon: parseFloat(start.lon.toFixed(5)),
+      lat: parseFloat(start.lat.toFixed(10)),
+      lon: parseFloat(start.lon.toFixed(10)),
       alt: start.alt || 0,
     };
     const endState = {
-      lat: parseFloat(end.lat.toFixed(5)),
-      lon: parseFloat(end.lon.toFixed(5)),
+      lat: parseFloat(end.lat.toFixed(10)),
+      lon: parseFloat(end.lon.toFixed(10)),
       alt: end.alt || 0,
     };
 
     const startKey = stateKey(startState);
     gScore.set(startKey, 0);
+    console.log("[DBG] startState =", startState, "endState =", endState);
+    console.log("[DBG] gScore =", gScore);
 
     openSet.push({
       ...startState,
@@ -170,7 +162,12 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
       openSet.sort((a, b) => a.f - b.f);
       const current = openSet.shift();
       const currKey = stateKey(current);
+      console.log("[DBG] current node key =", currKey);
 
+      if (visited.has(currKey)) {
+        // 이미 방문한 노드라면 건너뜀
+        return;
+      }
       visited.add(currKey);
 
       console.log(
@@ -200,6 +197,7 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
 
       // (5) 이웃(26방향) 탐색
       const neighbors = getNeighbors26(current, stepDist, maxAlt);
+      console.log(`[DBG] Generated ${neighbors.length} neighbors for current node.`);
       for (const nb of neighbors) {
         const nbKey = stateKey(nb);
 
@@ -222,10 +220,11 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
           nb.lon,
           nb.alt
         );
-
-        const costSoFar = gScore.get(currKey) || Infinity;
+        const costSoFar = gScore.get(currKey);
         const tentativeG = costSoFar + moveCost;
         const oldG = gScore.get(nbKey) || Infinity;
+        console.log("[DBG] costSoFar =", costSoFar, "moveCost =", moveCost);
+        console.log("[DBG] tentativeG =", tentativeG, "oldG =", oldG);
 
         // 더 나은 경로
         if (tentativeG < oldG) {
@@ -238,6 +237,7 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
           if (idx >= 0) {
             openSet[idx].f = fVal;
           } else {
+            // visited.add(nbKey);
             openSet.push({ ...nb, f: fVal });
           }
         }
@@ -254,18 +254,12 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
 function getNeighbors26(state, stepDist, maxAlt) {
   const { lat, lon, alt } = state;
 
-  // lat, lon을 1초에 최대 8.33m 이동하려면?
-  // 대략 latStep, lonStep를 작게 잡고, 실제 거리 <= 8.33m 조건으로 필터
-  // 여기서는 lat/lon 한 칸(=0.00005도 ~=5.5m 근방) 사용할 수 있음
-  // 그러나 26방향은 dx,dy,dz = -1,0,+1 조합
-  // => latStep = 0.00005, lonStep = 0.00005, altStep=10
-  //    이동 거리 ≤ 8.33m 이면 valid
-
+  // 이동 스텝 재조정
   const latStep = 0.00005;
   const lonStep = 0.00005;
-  const altStep = 10;
+  const altStep = 5; // 5m로 감소
 
-  // 3^3=27개 중 (0,0,0) 제외 → 26
+  // 26방향 생성
   const directions = [];
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
@@ -279,7 +273,7 @@ function getNeighbors26(state, stepDist, maxAlt) {
   const neighbors = [];
 
   for (const [dx, dy, dz] of directions) {
-    // 새 좌표
+    // 새 좌표 계산
     const newLat = parseFloat((lat + dx * latStep).toFixed(10));
     const newLon = parseFloat((lon + dy * lonStep).toFixed(10));
     const newAlt = alt + dz * altStep;
@@ -294,6 +288,7 @@ function getNeighbors26(state, stepDist, maxAlt) {
     const dist = distance3D(lat, lon, alt, newLat, newLon, newAlt);
     if (dist <= stepDist + 0.001) {
       neighbors.push({ lat: newLat, lon: newLon, alt: newAlt });
+      console.log(`[DBG] Neighbor added: lat=${newLat}, lon=${newLon}, alt=${newAlt}, dist=${dist}`);
     } else {
       console.log("[DBG] Neighbor discarded, distance too large:", dist);
     }
@@ -339,12 +334,6 @@ function reconstructPath(cameFrom, current) {
  * ============================
  * 5) Service 로직
  * ============================
- *
- * planSinglePathIgnoringOtherAircrafts:
- *  - 출발/도착 buildingID → DB에서 lat,lon 조회
- *  - Obstacle 전부 조회
- *  - 출발지/도착지의 고도를 "건물 장애물의 height + 10" 등으로 설정(예시)
- *  - 3D A*로 경로 찾기
  */
 
 /**
@@ -379,64 +368,67 @@ async function insertFlight(id, originID, destinationID) {
 /**
  * 핵심 함수:
  * 1) 출발건물(originID), 도착건물(destinationID) → lat/lon 조회
- * 2) Obstacle 테이블 조회 → 장애물들
- * 3) 출발지/도착지 고도 설정 (예: 해당 건물 장애물 height + 10m)
+ * 2) Obstacle 전부 조회
+ * 3) 출발지/도착지 고도 설정 (예: 해당 건물 장애물 height + 20m)
  * 4) 26방향 3D A* 실행(stepDist=8.33, maxAlt=200)
- * 5) 경로 반환 (1초 간격)
+ * 5) 경로 반환
  */
 async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
   console.log("[DBG] planSinglePathIgnoringOtherAircrafts() called");
   console.log("[DBG] originID =", originID, "destinationID =", destinationID);
 
-  // 1) 장애물 가져오기
-  const obstacles = await getAllObstacles();
+  try {
+    // 1) 장애물 가져오기
+    const obstacles = await getAllObstacles();
 
-  // 2) 출발/도착 건물
-  const startBuilding = await getBuilding(originID);
-  const endBuilding = await getBuilding(destinationID);
-  if (!startBuilding || !endBuilding) {
-    throw new Error("Invalid building ID(s)");
+    // 2) 출발/도착 건물
+    const startBuilding = await getBuilding(originID);
+    const endBuilding = await getBuilding(destinationID);
+    if (!startBuilding || !endBuilding) {
+      throw new Error("Invalid building ID(s)");
+    }
+
+    // 3) 출발/도착 건물 위치 기반 -> 해당 위치가 속한 장애물 찾기
+    const startObstacle = obstacles.find((o) =>
+      collideObstacle(startBuilding.lat, startBuilding.lon, 0, o)
+    );
+    const endObstacle = obstacles.find((o) =>
+      collideObstacle(endBuilding.lat, endBuilding.lon, 0, o)
+    );
+
+    console.log("[DBG] startObstacle =", startObstacle);
+    console.log("[DBG] endObstacle =", endObstacle);
+
+    // 출발지 고도 = startObstacle.height + 20 (여유 공간)
+    const startAlt = startObstacle? height + 20 : 100;
+    const endAlt = endObstacle? height + 20 : 100;
+
+    console.log(`[DBG] startAlt = ${startAlt}, endAlt = ${endAlt}`);
+
+    // 4) A* 파라미터
+    const stepDist = 8.33; // 1초당 최대 이동
+    const maxAlt = 200; // 최대 고도(예시)
+
+    // 시작/끝 상태
+    const start = {
+      lat: startBuilding.lat,
+      lon: startBuilding.lon,
+      alt: startAlt,
+    };
+    const end = {
+      lat: endBuilding.lat,
+      lon: endBuilding.lon,
+      alt: endAlt,
+    };
+
+    // 5) 3D A* 탐색
+    const path = await findPath3D(start, end, obstacles, maxAlt, stepDist);
+
+    return path;
+  } catch (error) {
+    console.error("[ERR] planSinglePathIgnoringOtherAircrafts:", error);
+    throw error;
   }
-
-  // 3) 출발/도착 건물 위치 기반 -> 해당 위치가 속한 장애물 찾기
-  //    (실제 로직은, lat/lon이 radius 범위 안에 있는 obstacle을 찾는 식이어야 함)
-  //    여기서는 편의상 'find'나 'some' 같은 간단 충돌로 처리 예시
-  const startObstacle = obstacles.find((o) =>
-    collideObstacle(startBuilding.lat, startBuilding.lon, 0, o)
-  );
-  const endObstacle = obstacles.find((o) =>
-    collideObstacle(endBuilding.lat, endBuilding.lon, 0, o)
-  );
-
-  // 출발지 고도 = startObstacle.height + 10 (간단 예시)
-  const startAlt = startObstacle ? startObstacle.height + 10 : 50;
-  const endAlt = endObstacle ? endObstacle.height + 10 : 50;
-
-  // 4) A* 파라미터
-  //    - 시속 30km/h => 8.33 m/s => 1초에 최대 8.33m 이동
-  const stepDist = 8.33; // 1초당 최대 이동
-  const maxAlt = 200;    // 최대 고도(예시)
-
-  // 시작/끝 상태
-  const start = {
-    lat: startBuilding.lat,
-    lon: startBuilding.lon,
-    alt: startAlt,
-  };
-  const end = {
-    lat: endBuilding.lat,
-    lon: endBuilding.lon,
-    alt: endAlt,
-  };
-
-  // 5) 3D A* 탐색
-  const path = findPath3D(start, end, obstacles, maxAlt, stepDist);
-
-  // 도착 시점에 alt를 obstacle.height로 맞출 수도 있음
-  // 여기서는 "도착점 alt를 그대로" 두거나, 
-  //  path[path.length-1].alt = endObstacle.height? ... etc.
-
-  return path;
 }
 
 module.exports = {
