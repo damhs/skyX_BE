@@ -8,4 +8,10 @@ showRouter.get('/randomFlight', async (req, res) => {
   res.json(result);
 });
 
+showRouter.get('/flight', async (req, res) => {
+  const { user_id, originID, destinationID } = req.query;
+  const result = await showService.getFlight(user_id, originID, destinationID);
+  res.json(result);
+});
+
 module.exports = showRouter;

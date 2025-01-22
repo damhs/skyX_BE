@@ -69,6 +69,14 @@ Content-Type: application/json
 
 ###
 
+GET http://172.10.7.60:3001/api/show/randomFlight HTTP/1.1
+
+###
+
+GET http://172.10.7.60:3001/api/show/flight?user_id=asdf&originID=4de6dddf-d7c0-11ef-8650-fa163e2f32e9&destinationID=4de6d2c8-d7c0-11ef-8650-fa163e2f32e9 HTTP/1.1
+
+###
+
 GET /ws?user_id=asdf HTTP/1.1
 Host: 172.10.7.60:3001/api/auth/signIn
 Upgrade: websocket
