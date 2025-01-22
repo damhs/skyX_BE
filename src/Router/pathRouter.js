@@ -2,7 +2,7 @@
 const express = require("express");
 const pathRouter = express.Router();
 const {
-  planSinglePathIgnoringOtherAgents,
+  planSinglePathIgnoringOtherAircrafts,
   insertFlight,
 } = require("../Service/pathService");
 
@@ -23,7 +23,7 @@ pathRouter.post("/single", async (req, res) => {
     const flightID = await insertFlight(user_id, originID, destinationID);
 
     // 2) 경로 생성
-    const path = await planSinglePathIgnoringOtherAgents(originID, destinationID);
+    const path = await planSinglePathIgnoringOtherAircrafts(originID, destinationID);
 
     if (path.length === 0) {
       console.log("[DBG] No valid path found");

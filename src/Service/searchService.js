@@ -5,7 +5,19 @@ const uuid = require('uuid-sequential');
 const searchService = {
   favorite: async (userId) => {
     try {
-      const [result] = await pool.query('SELECT * FROM Building WHERE buildingID IN (SELECT buildingID FROM Favorite WHERE id = ?)', [userId]);
+      const [result] = await pool.query(`
+        SELECT 
+          b.*, 
+          f.favoriteName 
+        FROM 
+          Building b
+        INNER JOIN 
+          Favorite f 
+        ON 
+          b.buildingID = f.buildingID
+        WHERE 
+          f.id = ?
+      `, [userId]);
       return result;
     } catch (error) {
       console.error('favorite failed:', error);
