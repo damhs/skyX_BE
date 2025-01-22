@@ -50,7 +50,29 @@ const searchService = {
   },
   recentFlight: async (userId) => {
     try {
-      const [result] = await pool.query('SELECT * FROM Flight WHERE id = ? ORDER BY updatedAt DESC', [userId]);
+      const query = `
+        SELECT 
+          Flight.flightID, 
+          Flight.id, 
+          Flight.originID, 
+          Flight.destinationID, 
+          Flight.updatedAt,
+          originBuilding.buildingName AS originBuildingName,
+          destinationBuilding.buildingName AS destinationBuildingName
+        FROM 
+          Flight
+        LEFT JOIN 
+          Building AS originBuilding 
+          ON Flight.originID = originBuilding.buildingID
+        LEFT JOIN 
+          Building AS destinationBuilding 
+          ON Flight.destinationID = destinationBuilding.buildingID
+        WHERE 
+          Flight.id = ?
+        ORDER BY 
+          Flight.updatedAt DESC
+      `;
+      const [result] = await pool.query(query, [userId]);
       return result;
     } catch (error) {
       console.error('recentFlight failed:', error);

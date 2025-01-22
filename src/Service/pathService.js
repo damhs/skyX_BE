@@ -53,7 +53,6 @@ async function getBuilding(buildingID) {
     buildingID: b.buildingID,
     lat: Number(b.latitude),
     lon: Number(b.longitude),
-    alt: Number(b.altitude),
   };
   console.log("[DBG] Found building:", building);
   return building;
@@ -86,14 +85,14 @@ function collideObstacle(lat, lon, alt, obstacle) {
   const dist2D = haversineDistance(lat, lon, obstacle.lat, obstacle.lon);
   const collision = dist2D <= obstacle.radius && alt >= 0 && alt <= obstacle.height;
   if (collision) {
-    console.log(`[DBG] Collision detected at lat: ${lat}, lon: ${lon}, alt: ${alt} with obstacle at lat: ${obstacle.lat}, lon: ${obstacle.lon}`);
+    console.log(`[DBG] Collision detected at lat: ${lat}, lon: ${lon}, alt: ${alt} with obstacle at lat: ${obstacle.lat}, lon: ${obstacle.lon}, height: ${obstacle.height}`);
   }
   return collision;
 }
 
 // ==================== 3D A* 알고리즘 (디버깅 추가) ====================
 
-function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 10) {
+function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 5) {
   console.log("[DBG] findPath3D() start");
   console.log("[DBG] start =", start, "end =", end);
   console.log(`[DBG] obstacles count = ${obstacles.length}, maxAlt=${maxAlt}, stepDist=${stepDist}`);
@@ -121,10 +120,15 @@ function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 10) {
   });
 
   const visited = new Set();
-
   let iterationCount = 0;
 
-  while (openSet.length > 0) {
+  const interval = setInterval(() => {
+    if (openSet.length === 0) {
+      console.log("[DBG] No path found after exploring all possibilities.");
+      clearInterval(interval);
+      return [];
+    }
+
     iterationCount++;
     // f값이 가장 낮은 노드를 pop
     openSet.sort((a, b) => a.f - b.f);
@@ -132,8 +136,8 @@ function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 10) {
     const currKey = stateKey(current);
     visited.add(currKey);
 
-    if (iterationCount % 100 === 0) {
-      // 100회마다 로그
+    // 100회마다 로그 출력 (이제 10회로 변경)
+    if (iterationCount % 10 === 0) {
       console.log(`[DBG] Iteration ${iterationCount}, openSet size = ${openSet.length}`);
       console.log("[DBG] Current node =", current);
     }
@@ -151,6 +155,7 @@ function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 10) {
       console.log("[DBG] Goal reached! distGoal =", distGoal);
       const pathFound = reconstructPath(cameFrom, current);
       console.log("[DBG] Path length =", pathFound.length);
+      clearInterval(interval);
       return pathFound;
     }
 
@@ -167,7 +172,8 @@ function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 10) {
         collideObstacle(nb.lat, nb.lon, nb.alt, obs)
       );
       if (collision) {
-        continue;
+        // 장애물에 충돌할 경우, 방향을 바꾸거나 고도를 상승
+        continue; // 다른 방향으로 이동하는 로직 추가 가능
       }
 
       // 이동 비용
@@ -196,11 +202,10 @@ function findPath3D(start, end, obstacles, maxAlt = 200, stepDist = 10) {
         }
       }
     }
-  }
-
-  console.log("[DBG] No path found after exploring all possibilities.");
-  return [];
+  }, 100); // 0.1초 간격으로 반복
 }
+
+
 
 function getNeighbors(state, stepDist, maxAlt) {
   const latStep = 0.00005;
@@ -290,13 +295,13 @@ async function planSinglePathIgnoringOtherAgents(originID, destinationID) {
 
   // 3) 출발지 장애물 높이 설정
   const startObstacle = obstacles.find(o => collideObstacle(startBuilding.lat, startBuilding.lon, 0, o));
-  const startAlt = startObstacle; // 장애물의 height를 출발지 고도로 설정
-  const start = { lat: startBuilding.lat, lon: startBuilding.lon, alt: startAlt + 5 }; // 10m 상승
+  const startAlt = startObstacle.height; // 장애물의 height를 출발지 고도로 설정
+  const start = { lat: startBuilding.lat, lon: startBuilding.lon, alt: startAlt + 10 }; // 10m 상승
 
   // 4) 도착지 장애물 높이 설정
   const endObstacle = obstacles.find(o => collideObstacle(endBuilding.lat, endBuilding.lon, 0, o));
-  const endAlt = endObstacle; // 장애물의 height를 도착지 고도로 설정
-  const end = { lat: endBuilding.lat, lon: endBuilding.lon, alt: endAlt + 5 }; // 10m 상승
+  const endAlt = endObstacle.height; // 장애물의 height를 도착지 고도로 설정
+  const end = { lat: endBuilding.lat, lon: endBuilding.lon, alt: endAlt + 10 }; // 10m 상승
 
   // 5) 3D A* 경로 탐색
   const stepDist = 10;
