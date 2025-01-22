@@ -7,7 +7,7 @@ const buildingRouter = require("./Router/buildingRouter");
 const searchRouter = require("./Router/searchRouter");
 const routeRouter = require("./Router/routeRouter");
 const pathRouter = require("./Router/pathRouter");
-const cbsRouter = require("./Router/cbsRouter");
+const showRouter = require("./Router/showRouter");
 
 function initHttpServer() {
   const app = express();
@@ -30,7 +30,8 @@ function initHttpServer() {
   // 새로 추가된 경로 라우터
   app.use("/api/route", routeRouter);
   app.use("/api/path", pathRouter);
-  app.use("/api/cbs", cbsRouter);
+
+  app.use("/api/show", showRouter);
 
   // 서버 실행
   const server = app.listen(port, () => {

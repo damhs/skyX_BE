@@ -3,7 +3,10 @@ CREATE TABLE `User` (
 	`password`	VARCHAR(100),
 	`nickname`	VARCHAR(20),
 	`profileURL`	VARCHAR(100),
-	`updatedAt`	DATETIME
+	`updatedAt`	DATETIME,
+  `latitude`	DECIMAL(13,10)	NULL,
+	`longitude`	DECIMAL(13,10)	NULL,
+	`altitude`	INT NULL
 );
 
 
