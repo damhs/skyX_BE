@@ -104,7 +104,6 @@ function collideObstacle(lat, lon, alt, obstacle) {
  *
  *  - 26방향 이동
  *  - 속도 30km/h ≈ 8.33m/s => stepDist = 8.33
- *  - 0.1초(100ms) 간격으로 탐색 진행
  *  - 경로 찾으면 resolve(path), 못 찾으면 reject
  */
 function findPath3D(start, end, obstacles, maxAlt, stepDist) {
@@ -242,7 +241,7 @@ function findPath3D(start, end, obstacles, maxAlt, stepDist) {
           }
         }
       }
-    }, 100); // 0.1초 간격
+    }, 1);
   });
 }
 
@@ -255,9 +254,9 @@ function getNeighbors26(state, stepDist, maxAlt) {
   const { lat, lon, alt } = state;
 
   // 이동 스텝 재조정
-  const latStep = 0.00005;
-  const lonStep = 0.00005;
-  const altStep = 5; // 5m로 감소
+  const latStep = 0.0000513579;
+  const lonStep = 0.0000513579;
+  const altStep = 5;
 
   // 26방향 생성
   const directions = [];
@@ -400,8 +399,8 @@ async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
     console.log("[DBG] endObstacle =", endObstacle);
 
     // 출발지 고도 = startObstacle.height + 20 (여유 공간)
-    const startAlt = startObstacle? height + 20 : 100;
-    const endAlt = endObstacle? height + 20 : 100;
+    const startAlt = startObstacle? startObstacle.height + 20 : 100;
+    const endAlt = endObstacle? endObstacle.height + 20 : 100;
 
     console.log(`[DBG] startAlt = ${startAlt}, endAlt = ${endAlt}`);
 
@@ -423,6 +422,8 @@ async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
 
     // 5) 3D A* 탐색
     const path = await findPath3D(start, end, obstacles, maxAlt, stepDist);
+
+    path.push(end); // 마지막 도착지 추가
 
     return path;
   } catch (error) {
