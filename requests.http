@@ -68,18 +68,22 @@ Content-Type: application/json
 }
 
 ###
+# 랜덤 100개 경로 불러오기
 
 GET http://172.10.7.60:3001/api/show/randomFlight HTTP/1.1
 
 ###
+# 특정 경로 불러오기
 
 GET http://172.10.7.60:3001/api/show/flight?user_id=asdf&originID=4de6dddf-d7c0-11ef-8650-fa163e2f32e9&destinationID=4de6d2c8-d7c0-11ef-8650-fa163e2f32e9 HTTP/1.1
 
 ###
+# 유저 위치 불러오기
 
 GET http://172.10.7.60:3001/api/show/position?user_id=asdf HTTP/1.1
 
 ###
+# 유저 위치 업데이트
 
 POST http://172.10.7.60:3001/api/show/position HTTP/1.1
 Content-Type: application/json
