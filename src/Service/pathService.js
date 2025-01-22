@@ -1,3 +1,4 @@
+// src/Service/pathService.js
 const pool = require("../mysql.js");
 const uuid = require("uuid-sequential");
 
@@ -45,6 +46,20 @@ async function getBuilding(buildingID) {
   };
   console.log("[DBG] Found building:", building);
   return building;
+}
+
+async function getAllBuildings() {
+  console.log("[DBG] getAllBuildings() called");
+  const [rows] = await pool.query("SELECT * FROM Building");
+  console.log(`[DBG] Building rows length: ${rows.length}`);
+
+  // DB에서 가져온 필드를 Number 변환
+  const buildings = rows.map((b) => ({
+    buildingID: b.buildingID,
+    lat: Number(b.latitude),
+    lon: Number(b.longitude),
+  }));
+  return buildings;
 }
 
 /**
@@ -399,8 +414,8 @@ async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
     console.log("[DBG] endObstacle =", endObstacle);
 
     // 출발지 고도 = startObstacle.height + 20 (여유 공간)
-    const startAlt = startObstacle? startObstacle.height + 20 : 100;
-    const endAlt = endObstacle? endObstacle.height + 20 : 100;
+    const startAlt = startObstacle.height + 10;
+    const endAlt = endObstacle.height + 10;
 
     console.log(`[DBG] startAlt = ${startAlt}, endAlt = ${endAlt}`);
 
@@ -435,4 +450,9 @@ async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
 module.exports = {
   planSinglePathIgnoringOtherAircrafts,
   insertFlight,
+  getAllObstacles,
+  getAllBuildings,
+  getBuilding,
+  findPath3D,
+  collideObstacle
 };
