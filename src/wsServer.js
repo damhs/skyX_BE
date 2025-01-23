@@ -66,16 +66,21 @@ function initWebSocketServer(server) {
               console.log(`[WS] Location sent to user_id: ${user_id}`);
             }
             break;
-          
+
           case "startAnimation":
             console.log(`[WS] Start animation for user_id: ${user_id}`);
             sendToUser(user_id, {
               type: "startAnimation",
             });
             break;
-          
+
           case "startNavigation":
             console.log(`[WS] Start navigation for user_id: ${user_id}`);
+            const userConnection = connections.get(user_id);
+            if (userConnection) {
+              userConnection.isNavigating = true;
+              // 필요 시 추가적인 초기화 로직
+            }
             sendToUser(user_id, {
               type: "startNavigation",
             });
@@ -98,18 +103,18 @@ function initWebSocketServer(server) {
 
   // 1초마다 위치 정보를 브로드캐스트
   setInterval(async () => {
-    for (const user_id of connections.keys()) {
+    for (const [user_id, userConnection] of connections.entries()) {
       const location = await locationService.getLocation(user_id);
       if (location) {
+        const messageType = userConnection.isNavigating ? "newPoint" : "locationUpdate";
         sendToUser(user_id, {
-          type: "locationUpdate",
+          type: messageType,
           payload: location,
         });
       }
     }
   }, 1000);
 }
-
 
 module.exports = {
   initWebSocketServer,

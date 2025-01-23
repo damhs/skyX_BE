@@ -108,3 +108,19 @@ Upgrade: websocket
 Connection: Upgrade
 Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
 Sec-WebSocket-Version: 13
+
+
+###
+
+ws://172.10.7.60:3001/ws?user_id=3882154653
+
+{
+    "type": "startAnimation",
+    "payload": {
+      "latitude": 37.5665,
+      "longitude": 126.9780,
+      "altitude": 50,
+      "direction": 80,
+      "speed": 3.5
+    }
+  }
