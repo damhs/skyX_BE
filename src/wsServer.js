@@ -66,6 +66,13 @@ function initWebSocketServer(server) {
               console.log(`[WS] Location sent to user_id: ${user_id}`);
             }
             break;
+          
+          case "startAnimation":
+            console.log(`[WS] Start animation for user_id: ${user_id}`);
+            sendToUser(user_id, {
+              type: "startAnimation",
+            });
+            break;
 
           default:
             console.warn("Unknown message type:", data.type);
