@@ -73,6 +73,13 @@ function initWebSocketServer(server) {
               type: "startAnimation",
             });
             break;
+          
+          case "startNavigation":
+            console.log(`[WS] Start navigation for user_id: ${user_id}`);
+            sendToUser(user_id, {
+              type: "startNavigation",
+            });
+            break;
 
           default:
             console.warn("Unknown message type:", data.type);
