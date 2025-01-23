@@ -455,7 +455,7 @@ async function planSinglePathIgnoringOtherAircrafts(originID, destinationID) {
   try {
     // 1) Redis에서 경로 조회
     const key = `path:${originID}:${destinationID}`;
-    const cachedValue = await redisClient.get(key);
+    const cachedValue = await client.get(key);
     if (cachedValue) {
       if (cachedValue === "no_path") {
         console.log(`[DBG] Found 'no_path' in Redis for ${key}.`);

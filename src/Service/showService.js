@@ -95,7 +95,7 @@ const showService = {
       res.status(500).send("Server Error");
     }
   },
-  getPathWithBuildingName: async () => {
+  getPathsWithBuildingName: async () => {
     try {
       const keys = await client.keys('path:*');
       const allRoutes = [];
