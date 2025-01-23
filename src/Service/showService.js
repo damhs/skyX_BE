@@ -30,6 +30,21 @@ const showService = {
       res.status(500).send("Server Error");
     }
   },
+  getFlightWithBuildingName: async (originName, destinationName) => {
+    try {
+      const [origin] = await pool.query(
+        "SELECT buildingID FROM Building WHERE buildingName = ?", [originName]
+      );
+      const [destination] = await pool.query(
+        "SELECT buildingID FROM Building WHERE buildingName = ?", [destinationName]
+      );
+      const route = await client.get(`path:${origin[0].buildingID}:${destination[0].buildingID}`);
+      return JSON.parse(route);
+    } catch (err) {
+      console.error("Error fetching route:", err);
+      res.status(500).send("Server Error");
+    }
+  },
   getFlight: async (id, originID, destinationID) => {
     try {
       const route = await client.get(`path:${originID}:${destinationID}`);
