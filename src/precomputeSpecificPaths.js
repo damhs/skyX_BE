@@ -1,9 +1,23 @@
 const { client } = require("./redis.js");
+const pool = require("./mysql.js");
 const {
   getAllObstacles,
   findPath3D,
   collideObstacle,
-} = require("./Service/pathService.js"); // 필요한 함수 가져오기
+} = require("./Service/pathService.js");
+
+// Building 정보 가져오기
+async function getBuildingById(buildingID) {
+  const [rows] = await pool.query("SELECT * FROM Building WHERE buildingID = ?", [buildingID]);
+  if (rows.length === 0) {
+    throw new Error(`Building with ID ${buildingID} not found`);
+  }
+  const building = rows[0];
+  return {
+    lat: Number(building.latitude),
+    lon: Number(building.longitude),
+  };
+}
 
 // 사전 계산 함수 (특정 루트만)
 async function precomputeSpecificPaths() {
@@ -53,25 +67,29 @@ async function precomputeSpecificPaths() {
         continue; // 경로가 이미 존재하면 건너뜀
       }
 
+      // Building 정보 가져오기
+      const startBuilding = await getBuildingById(originID);
+      const endBuilding = await getBuildingById(destinationID);
+
       // 출발지/도착지 고도를 장애물 height + 10으로 설정
       const startObstacle = obstacles.find((o) =>
-        collideObstacle(route.originID.lat, route.originID.lon, 0, o)
+        collideObstacle(startBuilding.lat, startBuilding.lon, 0, o)
       );
       const endObstacle = obstacles.find((o) =>
-        collideObstacle(route.destinationID.lat, route.destinationID.lon, 0, o)
+        collideObstacle(endBuilding.lat, endBuilding.lon, 0, o)
       );
 
       const startAlt = startObstacle ? startObstacle.height + 10 : 100;
       const endAlt = endObstacle ? endObstacle.height + 10 : 100;
 
       const start = {
-        lat: route.originID.lat,
-        lon: route.originID.lon,
+        lat: startBuilding.lat,
+        lon: startBuilding.lon,
         alt: startAlt,
       };
       const end = {
-        lat: route.destinationID.lat,
-        lon: route.destinationID.lon,
+        lat: endBuilding.lat,
+        lon: endBuilding.lon,
         alt: endAlt,
       };
 
