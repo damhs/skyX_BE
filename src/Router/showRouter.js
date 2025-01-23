@@ -26,4 +26,9 @@ showRouter.post('/position', async (req, res) => {
   res.json(result);
 });
 
+showRouter.get('/pathWithBuildingName', async (req, res) => {
+  const result = await showService.getPathWithBuildingName();
+  res.json(result);
+});
+
 module.exports = showRouter;

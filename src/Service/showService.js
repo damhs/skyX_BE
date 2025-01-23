@@ -79,6 +79,33 @@ const showService = {
       console.error("Error updating user position:", err);
       res.status(500).send("Server Error");
     }
+  },
+  getPathWithBuildingName: async () => {
+    try {
+      const keys = await client.keys('path:*');
+      const allRoutes = [];
+      for (const key of keys) {
+        const originID = key.split(':')[1];
+        const destinationID = key.split(':')[2];
+        const [origin] = await pool.query(
+          "SELECT buildingName FROM Building WHERE buildingID = ?", [originID]
+        );
+        const [destination] = await pool.query(
+          "SELECT buildingName FROM Building WHERE buildingID = ?", [destinationID]
+        );
+        const route = {
+          originID,
+          destinationID,
+          origin: origin[0].buildingName,
+          destination: destination[0].buildingName,
+        };
+        allRoutes.push(route);
+      }
+      return allRoutes;
+    } catch (err) {
+      console.error("Error fetching route:", err);
+      res.status(500).send("Server Error");
+    }
   }
 };
 

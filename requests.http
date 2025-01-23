@@ -96,6 +96,11 @@ Content-Type: application/json
 }
 
 ###
+# 계산된 경로 with 건물이름 불러오기
+
+GET http://172.10.7.60:3001/api/show/pathWithBuildingName HTTP/1.1
+
+###
 
 GET /ws?user_id=asdf HTTP/1.1
 Host: 172.10.7.60:3001/api/auth/signIn
