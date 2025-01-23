@@ -1,7 +1,7 @@
-// src/wsServer.js
 const WebSocketServer = require("websocket").server;
 const { client } = require("./redis.js");
 const routeHandler = require("./Handler/routeHandler.js");
+const locationService = require("./Service/locationService.js");
 
 // 연결된 클라이언트
 const connections = new Map();
@@ -23,31 +23,50 @@ function broadcast(messageObj) {
   }
 }
 
-// validateUser, parseQueryParams, 등등 기존 로직은 그대로
-// ...
-
 function initWebSocketServer(server) {
   const wsServer = new WebSocketServer({ httpServer: server });
 
   wsServer.on("request", async (request) => {
-    // ... 기존 handshake 로직 동일
-    // handshake 후 connection 생성:
     const user_id = request.resourceURL.query.user_id;
     const connection = request.accept(null, request.origin);
     connections.set(user_id, connection);
 
+    console.log(`[WS] Connection established for user_id: ${user_id}`);
+
     connection.on("message", async (message) => {
       if (message.type !== "utf8") return;
+
       try {
         const data = JSON.parse(message.utf8Data);
+
         switch (data.type) {
-          case "randomStartEnd":
-            await routeHandler.handleRandomStartEnd(user_id, data.payload);
+          case "startLocationUpdates":
+            // Unity로부터 지속적인 위치 수신 요청
+            console.log(`[WS] Start location updates for user_id: ${user_id}`);
             break;
-          case "requestRoute":
-            await routeHandler.handleRequestRoute(user_id, data.payload);
+
+          case "stopLocationUpdates":
+            // Unity가 위치 업데이트 중단 요청
+            console.log(`[WS] Stop location updates for user_id: ${user_id}`);
             break;
-          // ... 위치 업데이트, 채팅 등은 기존 로직 사용
+
+          case "updateLocation":
+            const { latitude, longitude, altitude } = data.payload;
+            await locationService.postLocation(user_id, latitude, longitude, altitude);
+            console.log(`[WS] Location updated for user_id: ${user_id}`);
+            break;
+
+          case "getLocation":
+            const location = await locationService.getLocation(user_id);
+            if (location) {
+              sendToUser(user_id, {
+                type: "locationData",
+                payload: location,
+              });
+              console.log(`[WS] Location sent to user_id: ${user_id}`);
+            }
+            break;
+
           default:
             console.warn("Unknown message type:", data.type);
             break;
@@ -62,7 +81,21 @@ function initWebSocketServer(server) {
       connections.delete(user_id);
     });
   });
+
+  // 1초마다 위치 정보를 브로드캐스트
+  setInterval(async () => {
+    for (const user_id of connections.keys()) {
+      const location = await locationService.getLocation(user_id);
+      if (location) {
+        sendToUser(user_id, {
+          type: "locationUpdate",
+          payload: location,
+        });
+      }
+    }
+  }, 1000);
 }
+
 
 module.exports = {
   initWebSocketServer,
