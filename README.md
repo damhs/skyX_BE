@@ -21,7 +21,7 @@
 | 김대영 | 이한샘 | 조성원 |
 |:------:|:------:|:------:|
 | <img src="https://github.com/user-attachments/assets/ec5d5d5b-d8cf-49a6-b403-650aacf1b6c4" alt="김대영" width="150"> | <img src="https://github.com/user-attachments/assets/bb17ef51-ebab-4d13-ad63-1e4bd8fd25ad" alt="이한샘" width="150"> | <img src="" alt="조성원" width="150"> |
-| 데이터 관리자, 백엔드 개발자, AI 개발자 | 기획, 풀스택 개발자 | 기획, 디자이너, 프론트엔드 개발자  |
+| 프론트엔드 개발자 | 백엔드 개발자 | 디자이너, 시뮬레이션  |
 | PNU CS | KAIST AE/CS | KAIST CS/ID | 
 | eodudrepublic@gmail.com | ihansaem1@kaist.ac.kr | bakdonal@kaist.ac.kr |
 | [GitHub](https://github.com/eodudrepublic) | [GitHub](https://github.com/damhs) | [GitHub](https://github.com/Sensible-life) |
