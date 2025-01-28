@@ -50,7 +50,7 @@
 
 | 카카오 로그인 | 지도 현위치 | 최근 검색 장소 | 즐겨찾기 | 실시간 길 안내 with 직선뷰 |
 |:------:|:------:|:------:|:------:|:------:|
-| <img src="https://github.com/user-attachments/assets/267706e9-01d0-4cf9-9156-4082de47b3a1" alt="카카오로그인" width="200"> | <img src="https://github.com/user-attachments/assets/c9d40f39-d8ad-4f5e-94e7-5950997155f3" alt="지도현위치" width="200"> | <img src="https://github.com/user-attachments/assets/662094fe-7e16-4ac5-808b-b03db2ce4586" alt="최근검색장소" width="200"> | <img src="https://github.com/user-attachments/assets/21aa24e9-33d4-4479-a2bd-9ad319993b20" alt="즐겨찾기" width="200"> | <img src="https://github.com/user-attachments/assets/94d8bf60-b4b7-44f4-847b-fb198d4354ee" alt="실시간길안내" width="200"> |
+| <img src="https://github.com/user-attachments/assets/267706e9-01d0-4cf9-9156-4082de47b3a1" alt="카카오로그인" width="150"> | <img src="https://github.com/user-attachments/assets/c9d40f39-d8ad-4f5e-94e7-5950997155f3" alt="지도현위치" width="150"> | <img src="https://github.com/user-attachments/assets/662094fe-7e16-4ac5-808b-b03db2ce4586" alt="최근검색장소" width="150"> | <img src="https://github.com/user-attachments/assets/21aa24e9-33d4-4479-a2bd-9ad319993b20" alt="즐겨찾기" width="150"> | <img src="https://github.com/user-attachments/assets/94d8bf60-b4b7-44f4-847b-fb198d4354ee" alt="실시간길안내" width="150"> |
 
 
 ### KAIST 3D 모델링
